@@ -15,8 +15,6 @@ import (
 
 const endpoint = "https://www.dhamma.org/en-US/courses/do_search"
 
-var postData url.Values
-
 type Course struct {
 	ID          int            `json:"id"`
 	CourseType  string         `json:"course_type"`
@@ -34,20 +32,15 @@ type CourseLocation struct {
 
 var (
 	studentType = flag.String("student", "old", "'old' or 'new'")
-	region      = flag.String("region", "eu", "region")
-	from        = flag.String("from", "now", "from date DD-MM-YYYY")
+	region      = flag.String("region", "Europe", "region")
+	from        = flag.String("from", "now", "from date YYYY-MM-DD")
 	to          = flag.String("to", "", "to date")
 )
 
-var (
-	studentMap = map[string]string{
-		"old": "OldStudent",
-		"new": "NewStudent",
-	}
-	regionMap = map[string]string{
-		"eu": "region_117",
-	}
-)
+var studentMap = map[string]string{
+	"old": "OldStudent",
+	"new": "NewStudent",
+}
 
 func init() {
 	flag.Parse()
@@ -61,7 +54,20 @@ func init() {
 		}
 		*to = t.AddDate(1, 0, 0).Format("2006-01-02")
 	}
-	postData = url.Values{
+}
+
+func listCourses(courses []Course) {
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 5, ' ', tabwriter.TabIndent)
+	fmt.Fprintln(w, "Starts\tOpens\tCity\tCountry\tURL")
+	for _, c := range courses {
+		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n", beautify(c.CourseStart),
+			beautify(c.Opens), c.Location.City, c.Location.Country, c.Location.URL)
+	}
+	w.Flush()
+}
+
+func getPage(n int) ([]Course, int) {
+	postData := url.Values{
 		"current_state":  []string{studentMap[*studentType]},
 		"regions[]":      []string{regionMap[*region]},
 		"languages[]":    []string{"en"},
@@ -70,20 +76,8 @@ func init() {
 		"sort_direction": []string{"up"},
 		"date_format":    []string{"YYYY-MM-DD"},
 		"daterange":      []string{fmt.Sprintf("%s - %s", *from, *to)},
+		"page":           []string{strconv.Itoa(n)},
 	}
-}
-
-func listCourses(courses []Course) {
-	w := tabwriter.NewWriter(os.Stdout, 0, 0, 5, ' ', tabwriter.TabIndent)
-	fmt.Fprintln(w, "Starts\tOpens\tCity\tCountry\tURL")
-	for _, c := range courses {
-		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n", c.CourseStart, c.Opens, c.Location.City, c.Location.Country, c.Location.URL)
-	}
-	w.Flush()
-}
-
-func getPage(n int) ([]Course, int) {
-	postData.Set("page", strconv.Itoa(n))
 	resp, err := http.PostForm(endpoint, postData)
 	if err != nil {
 		log.Fatal(err)
@@ -99,7 +93,14 @@ func getPage(n int) ([]Course, int) {
 	return out.List, out.Pages
 }
 
-// filters the list, returning only the retreats for which enrollment starts after
+func beautify(yyyymmdd string) string {
+	t, err := time.Parse("2006-01-02", yyyymmdd)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return t.Format("02 Jan 2006")
+}
+
 // the current time.
 func filter(list []Course) []Course {
 	l := make([]Course, 0)
@@ -108,7 +109,11 @@ func filter(list []Course) []Course {
 		if err != nil {
 			log.Fatal(err)
 		}
-		if t.After(time.Now()) {
+		after, err := time.Parse("2006-01-02", *from)
+		if err != nil {
+			log.Fatal(err)
+		}
+		if t.After(after) {
 			l = append(l, c)
 		}
 	}

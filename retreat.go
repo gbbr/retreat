@@ -103,21 +103,21 @@ func beautify(yyyymmdd string) string {
 
 // the current time.
 func filter(list []Course) []Course {
-	l := make([]Course, 0)
+	out := make([]Course, 0)
+	after, err := time.Parse("2006-01-02", *from)
+	if err != nil {
+		log.Fatal(err)
+	}
 	for _, c := range list {
 		t, err := time.Parse("2006-01-02", c.Opens)
 		if err != nil {
 			log.Fatal(err)
 		}
-		after, err := time.Parse("2006-01-02", *from)
-		if err != nil {
-			log.Fatal(err)
-		}
 		if t.After(after) {
-			l = append(l, c)
+			out = append(out, c)
 		}
 	}
-	return l
+	return out
 }
 
 func main() {

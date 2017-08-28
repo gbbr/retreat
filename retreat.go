@@ -70,9 +70,13 @@ func printCourses(courses []Course) {
 
 // postDataForPage returns post data used to retrieve page number n.
 func postDataForPage(n int) url.Values {
+	r, ok := regionMap[*region]
+	if !ok {
+		log.Fatal("region not found")
+	}
 	return url.Values{
 		"current_state":  []string{studentMap[*studentType]},
-		"regions[]":      []string{regionMap[*region]},
+		"regions[]":      []string{r},
 		"languages[]":    []string{"en"},
 		"course_types[]": []string{"3"},
 		"sort_column":    []string{"dates"},

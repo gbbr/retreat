@@ -13,21 +13,21 @@ import (
 	"time"
 )
 
+// endpoints holds the URL to retrieve information from.
 const endpoint = "https://www.dhamma.org/en-US/courses/do_search"
 
+// Course holds information about a Vipassana course.
 type Course struct {
-	ID          int            `json:"id"`
-	CourseType  string         `json:"course_type"`
-	Location    CourseLocation `json:"location"`
-	CourseStart string         `json:"course_start_date"`
-	Opens       string         `json:"enrollment_open_date"`
-	Pages       string         `json:"pages"`
-}
-
-type CourseLocation struct {
-	City    string `json:"city"`
-	Country string `json:"country"`
-	URL     string `json:"website_url"`
+	ID         int    `json:"id"`
+	CourseType string `json:"course_type"`
+	Location   struct {
+		City    string `json:"city"`
+		Country string `json:"country"`
+		URL     string `json:"website_url"`
+	} `json:"location"`
+	CourseStart string `json:"course_start_date"`
+	Opens       string `json:"enrollment_open_date"`
+	Pages       string `json:"pages"`
 }
 
 var (
@@ -37,6 +37,7 @@ var (
 	to          = flag.String("to", "", "to date")
 )
 
+// studentMap maps student type flag values to post data values.
 var studentMap = map[string]string{
 	"old": "OldStudent",
 	"new": "NewStudent",
@@ -56,7 +57,8 @@ func init() {
 	}
 }
 
-func listCourses(courses []Course) {
+// printCourses prints all the courses nicely
+func printCourses(courses []Course) {
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 5, ' ', tabwriter.TabIndent)
 	fmt.Fprintln(w, "Starts\tOpens\tCity\tCountry\tURL")
 	for _, c := range courses {
@@ -66,8 +68,9 @@ func listCourses(courses []Course) {
 	w.Flush()
 }
 
-func getPage(n int) ([]Course, int) {
-	postData := url.Values{
+// postDataForPage returns post data used to retrieve page number n.
+func postDataForPage(n int) url.Values {
+	return url.Values{
 		"current_state":  []string{studentMap[*studentType]},
 		"regions[]":      []string{regionMap[*region]},
 		"languages[]":    []string{"en"},
@@ -78,7 +81,12 @@ func getPage(n int) ([]Course, int) {
 		"daterange":      []string{fmt.Sprintf("%s - %s", *from, *to)},
 		"page":           []string{strconv.Itoa(n)},
 	}
-	resp, err := http.PostForm(endpoint, postData)
+}
+
+// getPage creates an HTTP request and returns all courses on page n, as well
+// as the total number of pages.
+func getPage(n int) ([]Course, int) {
+	resp, err := http.PostForm(endpoint, postDataForPage(n))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -101,7 +109,8 @@ func beautify(yyyymmdd string) string {
 	return t.Format("02 Jan 2006")
 }
 
-// the current time.
+// filter filters the given list and returns only the courses that have their
+// enrollment dates after the start date.
 func filter(list []Course) []Course {
 	out := make([]Course, 0)
 	after, err := time.Parse("2006-01-02", *from)
@@ -130,5 +139,5 @@ func main() {
 			all = append(all, filter(list)...)
 		}
 	}
-	listCourses(all)
+	printCourses(all)
 }

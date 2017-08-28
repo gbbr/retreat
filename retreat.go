@@ -51,7 +51,6 @@ var (
 
 func init() {
 	flag.Parse()
-	fmt.Println("Please wait...")
 	if *from == "now" {
 		*from = time.Now().Format("2006-01-02")
 	}

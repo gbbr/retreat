@@ -76,7 +76,7 @@ func printCourses(courses []Course) {
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 5, ' ', tabwriter.TabIndent)
 	fmt.Fprintln(w, "Starts\tOpens\tCity\tCountry\tURL")
 	for _, c := range courses {
-		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n", beautify(c.CourseStart),
+		fmt.Fprintf(w, "%s\t%s\t%.30s\t%s\t%s\n", beautify(c.CourseStart),
 			beautify(c.Opens), c.Location.City, c.Location.Country, c.Location.URL)
 	}
 	w.Flush()

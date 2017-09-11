@@ -31,11 +31,15 @@ type Course struct {
 }
 
 var (
-	days   = flag.String("days", "10", "length in days")
-	region = flag.String("region", "Europe", "region")
-	from   = flag.String("from", "now", "start date YYYY-MM-DD")
-	to     = flag.String("to", "", "end date YYYY-MM-DD")
+	days     = flag.String("days", "10", "length in days")
+	region   = flag.String("region", "Europe", "region")
+	from     = flag.String("from", "now", "start date YYYY-MM-DD")
+	to       = flag.String("to", "", "end date YYYY-MM-DD")
+	noFilter = flag.Bool("all", false, "if set, results are unfiltered")
 )
+
+// filterFunc holds the filter function that will be used to filter the results.
+var filterFunc = notYetOpen
 
 var lengthMap = map[string]string{
 	"1":  "5",
@@ -61,6 +65,9 @@ func init() {
 			log.Fatal(err)
 		}
 		*to = t.AddDate(1, 0, 0).Format("2006-01-02")
+	}
+	if *noFilter {
+		filterFunc = all
 	}
 }
 
@@ -124,9 +131,9 @@ func beautify(yyyymmdd string) string {
 	return t.Format("02 Jan 2006")
 }
 
-// filter filters the given list and returns only the courses that have their
+// notYetOpen filters the given list and returns only the courses that have their
 // enrollment dates after the start date.
-func filter(list []Course) []Course {
+func notYetOpen(list []Course) []Course {
 	out := make([]Course, 0)
 	after, err := time.Parse("2006-01-02", *from)
 	if err != nil {
@@ -144,15 +151,18 @@ func filter(list []Course) []Course {
 	return out
 }
 
+// all is a filter that returns the entire list.
+func all(list []Course) []Course { return list }
+
 func main() {
 	all := make([]Course, 0)
 	list, pages := getPage(1)
-	all = append(all, filter(list)...)
+	all = append(all, list...)
 	if pages > 1 {
 		for i := 2; i <= pages; i++ {
 			list, _ := getPage(i)
-			all = append(all, filter(list)...)
+			all = append(all, list...)
 		}
 	}
-	printCourses(all)
+	printCourses(filterFunc(all))
 }

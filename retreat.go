@@ -31,20 +31,27 @@ type Course struct {
 }
 
 var (
-	studentType = flag.String("student", "old", "'old' or 'new'")
-	region      = flag.String("region", "Europe", "region")
-	from        = flag.String("from", "now", "from date YYYY-MM-DD")
-	to          = flag.String("to", "", "to date")
+	days   = flag.String("days", "10", "length in days")
+	region = flag.String("region", "Europe", "region")
+	from   = flag.String("from", "now", "start date YYYY-MM-DD")
+	to     = flag.String("to", "", "end date YYYY-MM-DD")
 )
 
-// studentMap maps student type flag values to post data values.
-var studentMap = map[string]string{
-	"old": "OldStudent",
-	"new": "NewStudent",
+var lengthMap = map[string]string{
+	"1":  "5",
+	"2":  "19",
+	"3":  "9",
+	"10": "3",
+	"20": "4",
+	"30": "11",
+	"45": "12",
+	"60": "23",
 }
 
 func init() {
 	flag.Parse()
+	log.SetPrefix("retreat: ")
+	log.SetFlags(0)
 	if *from == "now" {
 		*from = time.Now().Format("2006-01-02")
 	}
@@ -74,11 +81,15 @@ func postDataForPage(n int) url.Values {
 	if !ok {
 		log.Fatal("region not found")
 	}
+	l, ok := lengthMap[*days]
+	if !ok {
+		log.Fatal("can only search for courses of length 1, 2, 3, 10, 20, 30, 45 and 60 days")
+	}
 	return url.Values{
-		"current_state":  []string{studentMap[*studentType]},
+		"current_state":  []string{"OldStudent"},
 		"regions[]":      []string{r},
 		"languages[]":    []string{"en"},
-		"course_types[]": []string{"3"},
+		"course_types[]": []string{l},
 		"sort_column":    []string{"dates"},
 		"sort_direction": []string{"up"},
 		"date_format":    []string{"YYYY-MM-DD"},
